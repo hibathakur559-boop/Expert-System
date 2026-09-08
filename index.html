@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Car Diagnostics Expert System</title>
+<style>
+  :root {
+    --bg: #0f1214;
+    --panel: #1a1e22;
+    --panel-hover: #20252a;
+    --border: #2a2f35;
+    --border-hover: #d99544;
+    --text: #ecebe8;
+    --muted: #8b9299;
+    --amber: #d99544;
+    --amber-dim: rgba(217, 149, 68, 0.12);
+    --red: #cf5b52;
+    --red-dim: rgba(207, 91, 82, 0.14);
+    --green: #6aab7f;
+    --green-dim: rgba(106, 171, 127, 0.14);
+    --blue: #6a94b0;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    background-image:
+      radial-gradient(ellipse 900px 500px at 15% -10%, rgba(217,149,68,0.06), transparent),
+      radial-gradient(ellipse 700px 500px at 100% 10%, rgba(106,148,176,0.05), transparent);
+    color: var(--text);
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+  .wrap {
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 48px 20px 90px;
+  }
+  header {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 28px;
+    margin-bottom: 32px;
+  }
+  .header-icon {
+    flex-shrink: 0;
+    width: 46px;
+    height: 46px;
+    border-radius: 10px;
+    background: var(--amber-dim);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .header-icon svg { width: 24px; height: 24px; stroke: var(--amber); }
+  h1 {
+    font-size: 1.65rem;
+    font-weight: 600;
+    margin: 0 0 6px;
+    letter-spacing: -0.01em;
+  }
+  header p {
+    color: var(--muted);
+    margin: 0;
+    font-size: 0.93rem;
+    max-width: 56ch;
+  }
+
+  .category {
+    margin-bottom: 26px;
+  }
+  .category-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .category-head svg { width: 17px; height: 17px; stroke: var(--muted); flex-shrink: 0; }
+  .category-title {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--muted);
+  }
+
+  .symptom-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  @media (max-width: 560px) {
+    .symptom-grid { grid-template-columns: 1fr; }
+  }
+  .symptom-item {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 12px 14px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease, transform 0.1s ease;
+    font-size: 0.9rem;
+    user-select: none;
+  }
+  .symptom-item:hover {
+    border-color: var(--border-hover);
+    background: var(--panel-hover);
+  }
+  .symptom-item:active { transform: scale(0.99); }
+  .symptom-item.selected {
+    border-color: var(--amber);
+    background: var(--amber-dim);
+  }
+  .checkbox {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    border: 1.5px solid var(--muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+  }
+  .symptom-item.selected .checkbox {
+    background: var(--amber);
+    border-color: var(--amber);
+  }
+  .checkbox svg {
+    width: 12px; height: 12px;
+    stroke: var(--bg);
+    opacity: 0;
+    transition: opacity 0.1s ease;
+  }
+  .symptom-item.selected .checkbox svg { opacity: 1; }
+  .symptom-item input { position: absolute; opacity: 0; pointer-events: none; }
+
+  .action-bar {
+    position: sticky;
+    bottom: 0;
+    background: linear-gradient(to top, var(--bg) 60%, transparent);
+    padding: 24px 0 8px;
+    margin-top: 8px;
+  }
+  .selected-count {
+    color: var(--muted);
+    font-size: 0.83rem;
+    margin-bottom: 10px;
+    min-height: 1.2em;
+  }
+  .selected-count strong { color: var(--amber); }
+  button.run {
+    width: 100%;
+    background: var(--amber);
+    color: #17140e;
+    border: none;
+    padding: 15px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: filter 0.15s ease, transform 0.1s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  button.run svg { width: 17px; height: 17px; stroke: #17140e; }
+  button.run:hover:not(:disabled) { filter: brightness(1.1); }
+  button.run:active:not(:disabled) { transform: scale(0.995); }
+  button.run:disabled {
+    background: var(--panel);
+    color: var(--muted);
+    border: 1px solid var(--border);
+    cursor: not-allowed;
+  }
+  button.run:disabled svg { stroke: var(--muted); }
+
+  #results {
+    display: none;
+    margin-top: 8px;
+    animation: fadeIn 0.35s ease;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .results-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+    border-top: 1px solid var(--border);
+    padding-top: 24px;
+  }
+  .results-head svg { width: 17px; height: 17px; stroke: var(--muted); }
+  .results-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--muted);
+  }
+
+  .result-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--amber);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 12px;
+    transition: border-color 0.15s ease;
+  }
+  .result-card:hover { border-color: var(--border-hover); border-left-color: var(--amber); }
+  .result-card.Critical, .result-card.High { border-left-color: var(--red); }
+  .result-card.Medium { border-left-color: var(--amber); }
+  .result-card.Low { border-left-color: var(--green); }
+
+  .result-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+  .result-title {
+    font-weight: 600;
+    font-size: 1.02rem;
+  }
+  .confidence-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  .confidence-bar {
+    width: 44px;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .confidence-bar-fill {
+    height: 100%;
+    background: var(--amber);
+    border-radius: 2px;
+  }
+  .confidence-text {
+    font-size: 0.78rem;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  .urgency-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 3px 9px;
+    border-radius: 20px;
+    margin-bottom: 12px;
+  }
+  .urgency-tag svg { width: 11px; height: 11px; }
+  .urgency-tag.Critical, .urgency-tag.High { background: var(--red-dim); color: var(--red); }
+  .urgency-tag.Medium { background: var(--amber-dim); color: var(--amber); }
+  .urgency-tag.Low { background: var(--green-dim); color: var(--green); }
+  .action-row {
+    display: flex;
+    gap: 9px;
+    color: var(--muted);
+    font-size: 0.88rem;
+  }
+  .action-row svg { width: 15px; height: 15px; flex-shrink: 0; margin-top: 2px; stroke: var(--muted); }
+  .matched-on {
+    font-size: 0.76rem;
+    color: var(--muted);
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+  }
+  .matched-on span {
+    display: inline-block;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 2px 7px;
+    margin: 2px 3px 0 0;
+  }
+
+  .no-match {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 24px 20px;
+    color: var(--muted);
+    font-size: 0.9rem;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  .no-match svg { width: 20px; height: 20px; stroke: var(--muted); flex-shrink: 0; margin-top: 2px; }
+
+  .disclaimer {
+    margin-top: 20px;
+    font-size: 0.8rem;
+    color: var(--muted);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .reset-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--blue);
+    font-size: 0.85rem;
+    cursor: pointer;
+    text-decoration: none;
+    background: none;
+    border: none;
+    padding: 0;
+    font-family: inherit;
+  }
+  .reset-link:hover { text-decoration: underline; }
+  .reset-link svg { width: 14px; height: 14px; stroke: var(--blue); }
+
+  footer {
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.78rem;
+    margin-top: 56px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="header-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14 16H9m10 0h3v-3.15a1 1 0 0 0-.84-.99L16 11l-2.7-3.6a1 1 0 0 0-.8-.4H5.24a2 2 0 0 0-1.8 1.1l-.8 1.63A6 6 0 0 0 2 12.42V16h2"/>
+        <circle cx="6.5" cy="16.5" r="2.5"/>
+        <circle cx="16.5" cy="16.5" r="2.5"/>
+      </svg>
+    </div>
+    <div>
+      <h1>Car Diagnostics Expert System</h1>
+      <p>Tick everything you're noticing. The system checks each symptom against a mechanic-informed rule base and ranks the most likely causes.</p>
+    </div>
+  </header>
+
+  <div id="categoryContainer"></div>
+
+  <div class="action-bar">
+    <div class="selected-count" id="selectedCount"></div>
+    <button class="run" id="runBtn" disabled>
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h7l-1 8 10-12h-7z"/></svg>
+      Run diagnosis
+    </button>
+  </div>
+
+  <div id="results"></div>
+
+  <footer>Rule-based expert system &middot; fixed mechanic knowledge base, no machine learning involved</footer>
+</div>
+
+<script>
+const rules = [
+  { condition: ["engine won't start", "clicking sound"], diagnosis: "Dead Battery or Faulty Starter", confidence: 0.90, action: "Check battery voltage. Try a jump-start. If it still fails, test the starter motor.", urgency: "Medium" },
+  { condition: ["engine won't start", "no sound"], diagnosis: "Dead Battery or Blown Fuse", confidence: 0.85, action: "Check battery terminals for corrosion. Inspect main fuses.", urgency: "Medium" },
+  { condition: ["engine overheating", "temperature warning light"], diagnosis: "Coolant Leak or Thermostat Failure", confidence: 0.88, action: "Check coolant level. Inspect for leaks. Replace thermostat if stuck closed.", urgency: "High" },
+  { condition: ["engine overheating", "steam from hood"], diagnosis: "Severe Coolant Loss or Radiator Failure", confidence: 0.92, action: "Stop driving immediately. Check radiator and hoses. Do not open a hot radiator cap.", urgency: "Critical" },
+  { condition: ["brake pedal feels soft", "spongy brakes"], diagnosis: "Air in Brake Lines or Low Brake Fluid", confidence: 0.87, action: "Check brake fluid level. Bleed the brake lines to remove air.", urgency: "High" },
+  { condition: ["brake pedal vibrates", "pulsation when braking"], diagnosis: "Warped Brake Rotors", confidence: 0.85, action: "Inspect brake rotors. Resurface or replace if warped.", urgency: "Medium" },
+  { condition: ["check engine light on", "rough idle"], diagnosis: "Faulty Spark Plugs or Oxygen Sensor", confidence: 0.80, action: "Scan for OBD-II codes. Replace spark plugs or oxygen sensor as needed.", urgency: "Medium" },
+  { condition: ["check engine light on", "reduced fuel efficiency"], diagnosis: "Faulty Oxygen Sensor or MAF Sensor", confidence: 0.83, action: "Scan for OBD-II codes. Clean or replace the MAF sensor. Replace the O2 sensor.", urgency: "Low" },
+  { condition: ["car pulls to one side", "uneven tire wear"], diagnosis: "Wheel Alignment Issue or Tire Pressure Imbalance", confidence: 0.86, action: "Check tire pressure. Get a wheel alignment done.", urgency: "Medium" },
+  { condition: ["strange noise when turning", "clicking sound"], diagnosis: "Worn CV Joints", confidence: 0.84, action: "Inspect CV joints and boots. Replace if damaged.", urgency: "Medium" },
+  { condition: ["excessive exhaust smoke", "blue smoke"], diagnosis: "Oil Burning – Worn Piston Rings or Valve Seals", confidence: 0.88, action: "Check oil consumption. An engine overhaul may be needed.", urgency: "High" },
+  { condition: ["excessive exhaust smoke", "black smoke"], diagnosis: "Rich Fuel Mixture – Faulty Fuel Injector or MAF Sensor", confidence: 0.82, action: "Clean fuel injectors. Check the MAF sensor. Scan for codes.", urgency: "Medium" },
+  { condition: ["ac not cooling", "weak airflow"], diagnosis: "Low Refrigerant or Clogged Cabin Filter", confidence: 0.79, action: "Check the cabin air filter. Recharge the AC system if low on refrigerant.", urgency: "Low" },
+  { condition: ["transmission slipping", "delayed gear shift"], diagnosis: "Low Transmission Fluid or Worn Clutch", confidence: 0.85, action: "Check transmission fluid level and condition. Inspect clutch (manual) or solenoid (auto).", urgency: "High" },
+  { condition: ["steering wheel shakes", "vibration at high speed"], diagnosis: "Unbalanced Wheels or Worn Suspension", confidence: 0.81, action: "Get the wheels balanced. Inspect suspension components.", urgency: "Medium" }
+];
+
+// Group symptoms into categories with icons, for a clearer, more scannable form
+const categories = [
+  {
+    name: "Starting & Electrical",
+    icon: '<path d="M13 2 3 14h7l-1 8 10-12h-7z"/>',
+    symptoms: ["engine won't start", "clicking sound", "no sound", "check engine light on", "rough idle", "reduced fuel efficiency"]
+  },
+  {
+    name: "Engine Temperature & Smoke",
+    icon: '<path d="M12 2v6m0 0a4 4 0 0 0-4 4c0 2 1.5 3 1.5 5a2.5 2.5 0 0 0 5 0c0-2 1.5-3 1.5-5a4 4 0 0 0-4-4Z"/>',
+    symptoms: ["engine overheating", "temperature warning light", "steam from hood", "excessive exhaust smoke", "blue smoke", "black smoke"]
+  },
+  {
+    name: "Braking",
+    icon: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/>',
+    symptoms: ["brake pedal feels soft", "spongy brakes", "brake pedal vibrates", "pulsation when braking"]
+  },
+  {
+    name: "Steering, Wheels & Suspension",
+    icon: '<circle cx="12" cy="12" r="9"/><path d="M12 3v4m0 10v4M3 12h4m10 0h4"/>',
+    symptoms: ["car pulls to one side", "uneven tire wear", "strange noise when turning", "steering wheel shakes", "vibration at high speed"]
+  },
+  {
+    name: "Transmission & Comfort",
+    icon: '<rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 10v4M12 10v4M17 10v4"/>',
+    symptoms: ["transmission slipping", "delayed gear shift", "ac not cooling", "weak airflow"]
+  }
+];
+
+const checkIcon = '<svg viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+
+const container = document.getElementById('categoryContainer');
+categories.forEach(cat => {
+  const catEl = document.createElement('div');
+  catEl.className = 'category';
+  catEl.innerHTML = `
+    <div class="category-head">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${cat.icon}</svg>
+      <span class="category-title">${cat.name}</span>
+    </div>
+    <div class="symptom-grid"></div>
+  `;
+  const grid = catEl.querySelector('.symptom-grid');
+  cat.symptoms.forEach(symptom => {
+    const id = 'sym-' + symptom.replace(/[^a-z0-9]+/gi, '-');
+    const item = document.createElement('label');
+    item.className = 'symptom-item';
+    item.setAttribute('for', id);
+    item.innerHTML = `
+      <input type="checkbox" id="${id}" value="${symptom}">
+      <span class="checkbox">${checkIcon}</span>
+      <span>${symptom.charAt(0).toUpperCase() + symptom.slice(1)}</span>
+    `;
+    item.addEventListener('click', (e) => {
+      e.preventDefault();
+      const input = item.querySelector('input');
+      input.checked = !input.checked;
+      item.classList.toggle('selected', input.checked);
+      updateRunButton();
+    });
+    grid.appendChild(item);
+  });
+  container.appendChild(catEl);
+});
+
+const runBtn = document.getElementById('runBtn');
+const selectedCount = document.getElementById('selectedCount');
+
+function updateRunButton() {
+  const checked = document.querySelectorAll('.symptom-item input:checked');
+  runBtn.disabled = checked.length === 0;
+  selectedCount.innerHTML = checked.length
+    ? `<strong>${checked.length}</strong> symptom${checked.length > 1 ? 's' : ''} selected`
+    : 'Select at least one symptom to run a diagnosis';
+}
+updateRunButton();
+
+runBtn.addEventListener('click', diagnose);
+
+function diagnose() {
+  const selected = Array.from(document.querySelectorAll('.symptom-item input:checked')).map(el => el.value);
+
+  // Score every rule by how many of ITS conditions are present in what the user selected.
+  // Any overlap counts — this lets a single strong symptom surface a relevant rule,
+  // while rules matching on both conditions are naturally ranked higher.
+  const matches = [];
+  rules.forEach(rule => {
+    const overlap = rule.condition.filter(c => selected.includes(c));
+    if (overlap.length > 0) {
+      const matchScore = overlap.length / rule.condition.length;
+      matches.push({ ...rule, matchScore, overlap });
+    }
+  });
+
+  // Rank by how much of the rule matched first, then by expert confidence
+  matches.sort((a, b) => (b.matchScore - a.matchScore) || (b.confidence - a.confidence));
+
+  const resultsEl = document.getElementById('results');
+  resultsEl.style.display = 'block';
+  resultsEl.innerHTML = '';
+
+  const head = document.createElement('div');
+  head.className = 'results-head';
+  head.innerHTML = `
+    <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 11 3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+    <span class="results-title">${matches.length ? matches.length + ' possible issue' + (matches.length > 1 ? 's' : '') + ' found' : 'No matching diagnosis'}</span>
+  `;
+  resultsEl.appendChild(head);
+
+  if (matches.length === 0) {
+    const div = document.createElement('div');
+    div.className = 'no-match';
+    div.innerHTML = `
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4m0 4h.01"/></svg>
+      <div>None of the selected symptoms matched a rule in the knowledge base. Try a different combination, or consult a mechanic directly.</div>
+    `;
+    resultsEl.appendChild(div);
+  } else {
+    const urgencyIcon = {
+      Critical: '<path d="m12 2 9 16H3z"/><path d="M12 9v4m0 3h.01"/>',
+      High: '<path d="m12 2 9 16H3z"/><path d="M12 9v4m0 3h.01"/>',
+      Medium: '<circle cx="12" cy="12" r="9"/><path d="M12 8v4m0 3h.01"/>',
+      Low: '<path d="m9 11 3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>'
+    };
+    matches.forEach(m => {
+      const card = document.createElement('div');
+      card.className = `result-card ${m.urgency}`;
+      card.innerHTML = `
+        <div class="result-top">
+          <div class="result-title">${m.diagnosis}</div>
+          <div class="confidence-wrap">
+            <div class="confidence-bar"><div class="confidence-bar-fill" style="width:${Math.round(m.confidence * 100)}%"></div></div>
+            <div class="confidence-text">${Math.round(m.confidence * 100)}%</div>
+          </div>
+        </div>
+        <span class="urgency-tag ${m.urgency}">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${urgencyIcon[m.urgency]}</svg>
+          ${m.urgency} urgency
+        </span>
+        <div class="action-row">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/></svg>
+          <span>${m.action}</span>
+        </div>
+        <div class="matched-on">Matched on: ${m.overlap.map(s => `<span>${s}</span>`).join('')}</div>
+      `;
+      resultsEl.appendChild(card);
+    });
+  }
+
+  const disclaimer = document.createElement('div');
+  disclaimer.className = 'disclaimer';
+  disclaimer.innerHTML = `
+    <span>This tool gives a starting point based on fixed rules, not a certified diagnosis.</span>
+    <button class="reset-link" onclick="resetForm()">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+      Run another diagnosis
+    </button>
+  `;
+  resultsEl.appendChild(disclaimer);
+
+  resultsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function resetForm() {
+  document.querySelectorAll('.symptom-item input').forEach(el => el.checked = false);
+  document.querySelectorAll('.symptom-item').forEach(el => el.classList.remove('selected'));
+  document.getElementById('results').style.display = 'none';
+  updateRunButton();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+</script>
+</body>
+</html>
