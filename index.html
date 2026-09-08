@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Car Diagnostics Expert System</title>
+<style>
+  :root {
+    --bg: #14171a;
+    --panel: #1c2024;
+    --panel-border: #2c3136;
+    --text: #e7e5e2;
+    --muted: #8b9198;
+    --amber: #e0a13d;
+    --red: #d1544a;
+    --green: #5fa87a;
+    --blue: #5b8fb0;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 48px 20px 80px;
+  }
+  header {
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 24px;
+    margin-bottom: 32px;
+  }
+  .gauge-mark {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--amber);
+    margin-right: 10px;
+    box-shadow: 0 0 8px var(--amber);
+  }
+  h1 {
+    font-size: 1.7rem;
+    font-weight: 600;
+    margin: 0 0 8px;
+    letter-spacing: -0.01em;
+  }
+  header p {
+    color: var(--muted);
+    margin: 0;
+    font-size: 0.95rem;
+  }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 6px;
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+  .panel h2 {
+    font-size: 0.85rem;
+    text-transform: none;
+    color: var(--muted);
+    margin: 0 0 16px;
+    font-weight: 600;
+  }
+  .symptom-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  @media (max-width: 560px) {
+    .symptom-grid { grid-template-columns: 1fr; }
+  }
+  .symptom-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid var(--panel-border);
+    border-radius: 5px;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease;
+    font-size: 0.9rem;
+  }
+  .symptom-item:hover {
+    border-color: var(--amber);
+  }
+  .symptom-item.selected {
+    border-color: var(--amber);
+    background: rgba(224, 161, 61, 0.08);
+  }
+  .symptom-item input {
+    margin-top: 3px;
+    accent-color: var(--amber);
+  }
+  button.run {
+    width: 100%;
+    background: var(--amber);
+    color: #14171a;
+    border: none;
+    padding: 14px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-top: 20px;
+    transition: filter 0.15s ease;
+  }
+  button.run:hover { filter: brightness(1.08); }
+  button.run:disabled {
+    background: #3a3f44;
+    color: var(--muted);
+    cursor: not-allowed;
+  }
+  #results { display: none; }
+  .result-card {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-left: 4px solid var(--amber);
+    border-radius: 6px;
+    padding: 20px;
+    margin-bottom: 14px;
+  }
+  .result-card.Critical { border-left-color: var(--red); }
+  .result-card.High { border-left-color: var(--red); }
+  .result-card.Medium { border-left-color: var(--amber); }
+  .result-card.Low { border-left-color: var(--green); }
+
+  .result-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 6px;
+  }
+  .result-title {
+    font-weight: 600;
+    font-size: 1.02rem;
+  }
+  .confidence {
+    font-size: 0.8rem;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  .urgency-tag {
+    display: inline-block;
+    font-size: 0.75rem;
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-bottom: 10px;
+  }
+  .urgency-tag.Critical { background: rgba(209,84,74,0.18); color: var(--red); }
+  .urgency-tag.High { background: rgba(209,84,74,0.18); color: var(--red); }
+  .urgency-tag.Medium { background: rgba(224,161,61,0.18); color: var(--amber); }
+  .urgency-tag.Low { background: rgba(95,168,122,0.18); color: var(--green); }
+  .action {
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+  .no-match {
+    color: var(--muted);
+    font-size: 0.9rem;
+    padding: 12px 0;
+  }
+  .disclaimer {
+    margin-top: 24px;
+    font-size: 0.8rem;
+    color: var(--muted);
+    border-top: 1px solid var(--panel-border);
+    padding-top: 16px;
+  }
+  .reset-link {
+    display: inline-block;
+    margin-top: 16px;
+    color: var(--blue);
+    font-size: 0.85rem;
+    cursor: pointer;
+    text-decoration: none;
+  }
+  .reset-link:hover { text-decoration: underline; }
+  footer {
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.78rem;
+    margin-top: 48px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div><span class="gauge-mark"></span><span style="color:var(--muted); font-size:0.85rem;">DIAGNOSTIC TOOL</span></div>
+    <h1>Car Diagnostics Expert System</h1>
+    <p>Select what you're noticing about your car. The system checks it against a set of mechanic-informed rules and gives you a likely cause, urgency, and next step.</p>
+  </header>
+
+  <div class="panel" id="symptomPanel">
+    <h2>Select all symptoms that apply</h2>
+    <div class="symptom-grid" id="symptomGrid"></div>
+    <button class="run" id="runBtn" disabled>Run diagnosis</button>
+  </div>
+
+  <div id="results"></div>
+
+  <footer>Rule-based expert system &middot; built with a fixed mechanic knowledge base, not machine learning</footer>
+</div>
+
+<script>
+const rules = [
+  { condition: ["engine won't start", "clicking sound"], diagnosis: "Dead Battery or Faulty Starter", confidence: 0.90, action: "Check battery voltage. Try a jump-start. If it still fails, test the starter motor.", urgency: "Medium" },
+  { condition: ["engine won't start", "no sound"], diagnosis: "Dead Battery or Blown Fuse", confidence: 0.85, action: "Check battery terminals for corrosion. Inspect main fuses.", urgency: "Medium" },
+  { condition: ["engine overheating", "temperature warning light"], diagnosis: "Coolant Leak or Thermostat Failure", confidence: 0.88, action: "Check coolant level. Inspect for leaks. Replace thermostat if stuck closed.", urgency: "High" },
+  { condition: ["engine overheating", "steam from hood"], diagnosis: "Severe Coolant Loss or Radiator Failure", confidence: 0.92, action: "Stop driving immediately. Check radiator and hoses. Do not open a hot radiator cap.", urgency: "Critical" },
+  { condition: ["brake pedal feels soft", "spongy brakes"], diagnosis: "Air in Brake Lines or Low Brake Fluid", confidence: 0.87, action: "Check brake fluid level. Bleed the brake lines to remove air.", urgency: "High" },
+  { condition: ["brake pedal vibrates", "pulsation when braking"], diagnosis: "Warped Brake Rotors", confidence: 0.85, action: "Inspect brake rotors. Resurface or replace if warped.", urgency: "Medium" },
+  { condition: ["check engine light on", "rough idle"], diagnosis: "Faulty Spark Plugs or Oxygen Sensor", confidence: 0.80, action: "Scan for OBD-II codes. Replace spark plugs or oxygen sensor as needed.", urgency: "Medium" },
+  { condition: ["check engine light on", "reduced fuel efficiency"], diagnosis: "Faulty Oxygen Sensor or MAF Sensor", confidence: 0.83, action: "Scan for OBD-II codes. Clean or replace the MAF sensor. Replace the O2 sensor.", urgency: "Low" },
+  { condition: ["car pulls to one side", "uneven tire wear"], diagnosis: "Wheel Alignment Issue or Tire Pressure Imbalance", confidence: 0.86, action: "Check tire pressure. Get a wheel alignment done.", urgency: "Medium" },
+  { condition: ["strange noise when turning", "clicking sound"], diagnosis: "Worn CV Joints", confidence: 0.84, action: "Inspect CV joints and boots. Replace if damaged.", urgency: "Medium" },
+  { condition: ["excessive exhaust smoke", "blue smoke"], diagnosis: "Oil Burning – Worn Piston Rings or Valve Seals", confidence: 0.88, action: "Check oil consumption. An engine overhaul may be needed.", urgency: "High" },
+  { condition: ["excessive exhaust smoke", "black smoke"], diagnosis: "Rich Fuel Mixture – Faulty Fuel Injector or MAF Sensor", confidence: 0.82, action: "Clean fuel injectors. Check the MAF sensor. Scan for codes.", urgency: "Medium" },
+  { condition: ["ac not cooling", "weak airflow"], diagnosis: "Low Refrigerant or Clogged Cabin Filter", confidence: 0.79, action: "Check the cabin air filter. Recharge the AC system if low on refrigerant.", urgency: "Low" },
+  { condition: ["transmission slipping", "delayed gear shift"], diagnosis: "Low Transmission Fluid or Worn Clutch", confidence: 0.85, action: "Check transmission fluid level and condition. Inspect clutch (manual) or solenoid (auto).", urgency: "High" },
+  { condition: ["steering wheel shakes", "vibration at high speed"], diagnosis: "Unbalanced Wheels or Worn Suspension", confidence: 0.81, action: "Get the wheels balanced. Inspect suspension components.", urgency: "Medium" }
+];
+
+// Build a unique, de-duplicated symptom list for the checkboxes
+const symptomSet = [...new Set(rules.flatMap(r => r.condition))].sort();
+
+const grid = document.getElementById('symptomGrid');
+symptomSet.forEach((symptom, i) => {
+  const id = 'sym' + i;
+  const item = document.createElement('label');
+  item.className = 'symptom-item';
+  item.setAttribute('for', id);
+  item.innerHTML = `<input type="checkbox" id="${id}" value="${symptom}"><span>${symptom.charAt(0).toUpperCase() + symptom.slice(1)}</span>`;
+  item.addEventListener('click', () => {
+    setTimeout(() => {
+      item.classList.toggle('selected', item.querySelector('input').checked);
+      updateRunButton();
+    }, 0);
+  });
+  grid.appendChild(item);
+});
+
+const runBtn = document.getElementById('runBtn');
+function updateRunButton() {
+  const checked = document.querySelectorAll('.symptom-item input:checked');
+  runBtn.disabled = checked.length === 0;
+}
+
+runBtn.addEventListener('click', diagnose);
+
+function diagnose() {
+  const selected = Array.from(document.querySelectorAll('.symptom-item input:checked')).map(el => el.value);
+
+  const matches = [];
+  rules.forEach(rule => {
+    const overlap = rule.condition.filter(c => selected.includes(c));
+    const matchScore = overlap.length / rule.condition.length;
+    if (matchScore > 0.5) {
+      matches.push({ ...rule, matchScore });
+    }
+  });
+
+  matches.sort((a, b) => b.confidence - a.confidence);
+
+  const resultsEl = document.getElementById('results');
+  resultsEl.style.display = 'block';
+  resultsEl.innerHTML = '';
+
+  const heading = document.createElement('h2');
+  heading.style.cssText = 'font-size:0.85rem;color:var(--muted);margin-bottom:16px;font-weight:600;';
+  heading.textContent = matches.length ? `${matches.length} possible issue${matches.length > 1 ? 's' : ''} found` : 'No matching diagnosis';
+  resultsEl.appendChild(heading);
+
+  if (matches.length === 0) {
+    const div = document.createElement('div');
+    div.className = 'panel no-match';
+    div.textContent = 'None of the rules matched well enough. Try selecting more specific symptoms, or consult a mechanic directly.';
+    resultsEl.appendChild(div);
+  } else {
+    matches.forEach(m => {
+      const card = document.createElement('div');
+      card.className = `result-card ${m.urgency}`;
+      card.innerHTML = `
+        <div class="result-top">
+          <div class="result-title">${m.diagnosis}</div>
+          <div class="confidence">${Math.round(m.confidence * 100)}% confidence</div>
+        </div>
+        <span class="urgency-tag ${m.urgency}">${m.urgency} urgency</span>
+        <div class="action">${m.action}</div>
+      `;
+      resultsEl.appendChild(card);
+    });
+  }
+
+  const disclaimer = document.createElement('div');
+  disclaimer.className = 'disclaimer';
+  disclaimer.innerHTML = `This tool gives a starting point based on fixed rules, not a certified diagnosis. Always verify with a certified mechanic.<br><a class="reset-link" onclick="resetForm()">Run another diagnosis</a>`;
+  resultsEl.appendChild(disclaimer);
+
+  resultsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function resetForm() {
+  document.querySelectorAll('.symptom-item input').forEach(el => el.checked = false);
+  document.querySelectorAll('.symptom-item').forEach(el => el.classList.remove('selected'));
+  document.getElementById('results').style.display = 'none';
+  updateRunButton();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+</script>
+</body>
+</html>
